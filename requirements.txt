@@ -1,3 +1,5 @@
-openai
+langchain
+langchain-openai
+requests
 streamlit
 streamlit-chat
