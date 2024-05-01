@@ -1,4 +1,6 @@
+
 from langchain_core.messages import AIMessage, HumanMessage # schema for human and ai messages
+from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai.chat_models import ChatOpenAI
 import requests
@@ -39,7 +41,7 @@ def get_conversational_chain(endpoint_url = None, model = None, temperature = 0.
         MessagesPlaceholder(variable_name="chat_history"),
         ("human", "{input}"),
     ])
-    return prompt | llm
+    return prompt | llm | StrOutputParser()
 
 def initialize_chat_history():
     st.session_state.chat_history = [AIMessage(content="Hello, how can I help you?")]
@@ -73,18 +75,8 @@ if model_name and model_name != 'failed to connect':
     # create chain
     chat_chain = get_conversational_chain(
         endpoint_url=endpoint_url, model=model_name, max_tokens=max_tokens, temperature=temperature)
-    user_query = st.chat_input("Enter your message here:")
-    if user_query is not None and user_query != "":
-        # get response
-        response = chat_chain.invoke({
-            "chat_history": st.session_state.chat_history,
-            "input" : user_query,
-        })
-        # add to history
-        st.session_state.chat_history.append(HumanMessage(user_query))
-        st.session_state.chat_history.append(AIMessage(response.content))
-
-    # writes conversation to app
+    
+    # writes past conversation to app
     for message in st.session_state.chat_history:
         if isinstance(message, HumanMessage):
             with st.chat_message("Human"):
@@ -92,3 +84,25 @@ if model_name and model_name != 'failed to connect':
         elif isinstance(message, AIMessage):
             with st.chat_message("AI"):        
                 st.write(message.content)
+
+    # get user query
+    user_query = st.chat_input("Enter your message here:")
+    if user_query is not None and user_query != "":
+        with st.chat_message("Human"):
+            st.write(user_query)
+        # append query to chat history
+        st.session_state.chat_history.append(HumanMessage(user_query))
+
+        # get response
+        chain_inputs = {
+            "chat_history": st.session_state.chat_history,
+            "input" : user_query,
+        }
+        
+        # write response stream
+        with st.chat_message("AI"):
+            response = st.write_stream(chat_chain.stream(chain_inputs))
+        # append response to chat history
+        st.session_state.chat_history.append(AIMessage(response))
+
+    
