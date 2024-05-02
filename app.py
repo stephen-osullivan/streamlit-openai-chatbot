@@ -10,11 +10,14 @@ import openai
 import os
 
 ENDPOINT_URL = "https://api.openai.com/v1" # uses openai.com by default, use "http://0.0.0.0:8000/v1" for local
-API_KEY = os.environ.get('OPENAI_API_KEY')
+API_KEY = os.environ.get('OPENAI_API_KEY', 'dummy_token') # only needed if using openai, not needed for local
 
 
-def list_models():
-    r = requests.get('https://api.openai.com/v1/models', headers={"Authorization": "Bearer " + os.environ.get("OPENAI_API_KEY")})
+def list_models(endpoint_url):
+    """
+    list the models available at the endpoint
+    """
+    r = requests.get(os.path.join(endpoint_url, 'models'), headers={"Authorization": f"Bearer {API_KEY}"})
     if r.status_code == 200:
         return [d['id'] for d in r.json()['data']]
     else:
@@ -52,7 +55,7 @@ def initialize_chat_history():
 # checking if an object is in session_state prevents it from doing this
 
 #page config
-st.set_page_config(page_title="Chat With Websites", page_icon="🤖")
+st.set_page_config(page_title="LLM Chat App", page_icon="🤖")
 st.title("LLM Chat")
 
 # save chat history to session state
@@ -63,7 +66,7 @@ if "chat_history" not in st.session_state:
 with st.sidebar: # anything in here will appear in the side bar
     endpoint_url = st.text_input('Endpoint URL', value = ENDPOINT_URL)
     if endpoint_url:
-        model_name = st.selectbox('Model Name', list_models())
+        model_name = st.selectbox('Model Name', list_models(endpoint_url=endpoint_url))
         if st.button('New Chat?'):
             initialize_chat_history()
     st.header("Settings")
