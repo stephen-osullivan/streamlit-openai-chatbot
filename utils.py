@@ -8,6 +8,7 @@ def get_model(
         model : str = None, 
         endpoint_url : str = None,
         temperature : float = 0.7,
+        max_tokens : int = 512,
         ):
     """
     takes in a framework and model and then returns a chain
@@ -50,7 +51,7 @@ def get_hugginface_model(
             repo_id=model,  
             temperature=temperature,
             max_new_tokens=1024,
-            model_kwargs=dict(stop_token=['<|eot_id|>'], max_length=1024, token=token))
+            stop_sequences = ["<|eot_id|>"])
     else:
         raise Exception('HUGGINGFACEHUB_API_TOKEN NOT PROVIDED.')
     return llm

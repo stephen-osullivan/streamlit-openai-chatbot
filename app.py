@@ -40,10 +40,11 @@ def get_conversational_chain(
     llm = get_model(framework=framework, endpoint_url=endpoint_url, model=model_name, temperature=temperature)
 
     if support_system_message:
-        system_message = [("system", "Please answer the user's questions, taking chat history into account.")]
+        
+        system_message = [("system", "You are useful AI Assistant. Please answer the user's questions, taking chat history into account.")]
     else:
         system_message = [
-            HumanMessage(content= "Please answer the user's questions, taking chat history into account."),
+            HumanMessage(content= "You are useful AI Assistant. Please answer the user's questions, taking chat history into account."),
             AIMessage(content="OK.")
             ]
     prompt = ChatPromptTemplate.from_messages([
@@ -54,7 +55,7 @@ def get_conversational_chain(
     return prompt | llm | StrOutputParser()
 
 def initialize_chat_history():
-    st.session_state.chat_history = [AIMessage(content="Hello, how can I help you?")]
+    st.session_state.chat_history = []
 
 ############################################### APP ###############################################
 
@@ -87,7 +88,7 @@ with st.sidebar: # anything in here will appear in the side bar
         
     st.header("Settings")
     temperature = st.slider('Temperature', 0.0, 1.0, 0.7)
-    max_tokens = st.slider('Max Tokens', 1, 5096, 512)
+    max_tokens = st.slider('Max Tokens', 1, 2048, 512)
     is_mistral = st.selectbox('Mistral Model?', [True, False])
 
 # Chat App
