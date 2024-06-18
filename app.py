@@ -7,6 +7,9 @@ import requests
 import streamlit as st
 from streamlit_chat import message
 import openai
+
+from utils import get_model
+
 import os
 
 ENDPOINT_URL = "https://api.openai.com/v1" # uses openai.com by default, use "http://0.0.0.0:8000/v1" for local
@@ -23,24 +26,28 @@ def list_models(endpoint_url):
     else:
         return ['failed to connect']
 
-def get_llm(endpoint_url = None, model = None, temperature = 0.7, max_tokens=500):
-    """
-    retrieve an llm client from the endpoint
-    """
-    llm = ChatOpenAI(
-        openai_api_base=endpoint_url, 
-        model = model,
-        temperature=temperature, 
-        max_tokens = max_tokens)
-    return llm
-
-def get_conversational_chain(endpoint_url = None, model = None, temperature = 0.7, max_tokens=500):
+def get_conversational_chain(
+        framework='vllm',
+        endpoint_url = None, 
+        model_name = None, 
+        temperature = 0.7, 
+        max_tokens=500, 
+        support_system_message=False):
     """
     returns a converstational langchain
     """
-    llm = get_llm(endpoint_url, model, temperature, max_tokens)
+
+    llm = get_model(framework=framework, endpoint_url=endpoint_url, model=model_name, temperature=temperature)
+
+    if support_system_message:
+        system_message = [("system", "Please answer the user's questions, taking chat history into account.")]
+    else:
+        system_message = [
+            HumanMessage(content= "Please answer the user's questions, taking chat history into account."),
+            AIMessage(content="OK.")
+            ]
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "Please answer the user's questions, taking chat history into account."),
+        *system_message,
         MessagesPlaceholder(variable_name="chat_history"),
         ("human", "{input}"),
     ])
@@ -58,26 +65,41 @@ def initialize_chat_history():
 st.set_page_config(page_title="LLM Chat App", page_icon="🤖")
 st.title("LLM Chat")
 
+if st.button('New Chat?'):
+    initialize_chat_history()
+
 # save chat history to session state
 if "chat_history" not in st.session_state:
     initialize_chat_history()
 
 #sidebar
 with st.sidebar: # anything in here will appear in the side bar
-    endpoint_url = st.text_input('Endpoint URL', value = ENDPOINT_URL)
-    if endpoint_url:
-        model_name = st.selectbox('Model Name', list_models(endpoint_url=endpoint_url))
-        if st.button('New Chat?'):
-            initialize_chat_history()
+    framework = st.selectbox('Framework', ['vllm', 'openai_compatible', 'huggingface'])
+    if framework in ['vllm', 'openai_compatible']:
+        endpoint_url = st.text_input('Endpoint URL', value = ENDPOINT_URL)
+        if endpoint_url:
+            model_name = st.selectbox('Model Name', list_models(endpoint_url=endpoint_url))
+    elif framework == 'huggingface':
+            endpoint_url=None
+            model_name = st.selectbox(
+                'Model', 
+                ["mistralai/Mistral-7B-Instruct-v0.2", "google/gemma-1.1-7b-it", "meta-llama/Meta-Llama-3-8B-Instruct"])
+        
     st.header("Settings")
     temperature = st.slider('Temperature', 0.0, 1.0, 0.7)
     max_tokens = st.slider('Max Tokens', 1, 5096, 512)
+    is_mistral = st.selectbox('Mistral Model?', [True, False])
 
 # Chat App
 if model_name and model_name != 'failed to connect':
     # create chain
     chat_chain = get_conversational_chain(
-        endpoint_url=endpoint_url, model=model_name, max_tokens=max_tokens, temperature=temperature)
+        framework=framework,
+        endpoint_url=endpoint_url, 
+        model_name=model_name, 
+        max_tokens=max_tokens, 
+        temperature=temperature,
+        support_system_message= ~is_mistral)
     
     # writes past conversation to app
     for message in st.session_state.chat_history:
@@ -107,5 +129,3 @@ if model_name and model_name != 'failed to connect':
             response = st.write_stream(chat_chain.stream(chain_inputs))
         # append response to chat history
         st.session_state.chat_history.append(AIMessage(response))
-
-    
