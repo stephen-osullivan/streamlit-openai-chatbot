@@ -45,15 +45,13 @@ def get_openai_model(
 def get_hugginface_model(
         model="mistralai/Mistral-7B-Instruct-v0.2",
         temperature = 0.7):
-    token = os.environ.get('HUGGINGFACEHUB_API_TOKEN')
-    if token:
-        llm = HuggingFaceEndpoint(
-            repo_id=model,  
-            temperature=temperature,
-            max_new_tokens=1024,
-            stop_sequences = ["<|eot_id|>"])
-    else:
-        raise Exception('HUGGINGFACEHUB_API_TOKEN NOT PROVIDED.')
+    
+    llm = HuggingFaceEndpoint(
+        repo_id=model,  
+        temperature=temperature,
+        max_new_tokens=1024,
+        stop_sequences = ["<|eot_id|>"])
+
     return llm
 
 def get_vllm_model(model, endpoint_url, temperature = 0.7):
