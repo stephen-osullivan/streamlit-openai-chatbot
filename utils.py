@@ -1,4 +1,4 @@
-from langchain_community.llms import HuggingFaceEndpoint, vllm
+from langchain_community.llms import HuggingFaceEndpoint, vllm, ollama
 from langchain_openai import ChatOpenAI
 
 import os
@@ -19,10 +19,20 @@ def get_model(
         llm = get_hugginface_model(model=model, temperature=temperature)
     elif framework == "vllm":
         llm = get_vllm_model(model=model, endpoint_url=endpoint_url, temperature=temperature)
+    elif framework == "ollama":
+        llm = get_ollama_model(model=model, temperature=temperature)
     else:
         raise NotImplementedError
     
     return llm 
+
+def get_ollama_model(model = 'llama3',  temperature=0.7):
+    llm = ollama.Ollama(
+        model=model, 
+        stop=['<|eot_id|>'], 
+        num_ctx = 1024, 
+        temperature=temperature)
+    return llm
 
 def get_openai_model(
         model='gpt-3.5-turbo', 
@@ -61,6 +71,6 @@ def get_vllm_model(model, endpoint_url, temperature = 0.7):
         model_name=model, 
         temperature=temperature,
         max_tokens = 1024,
-        model_kwargs=dict(stop=['<|im_end|>', '<|im_start|>'])
+        model_kwargs=dict(stop=['<|im_end|>', '<|im_start|>','</s>', "[INST]", "Human:"])
         )
     return llm

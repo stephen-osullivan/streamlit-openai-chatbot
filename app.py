@@ -40,22 +40,20 @@ def get_conversational_chain(
     llm = get_model(framework=framework, endpoint_url=endpoint_url, model=model_name, temperature=temperature)
 
     if support_system_message:
-        
-        system_message = [("system", "You are useful AI Assistant. Please answer the user's questions, taking chat history into account.")]
+        system_message = [("system", "You are friendly AI Assistant. Please answer the user's questions, taking chat history into account.")]
     else:
         system_message = [
-            HumanMessage(content= "You are useful AI Assistant. Please answer the user's questions, taking chat history into account."),
-            AIMessage(content="OK.")
-            ]
+           HumanMessage(content= "You are friendly AI Assistant. Please respond to the users queries, taking chat history into account. Please keep your answers concise.'"),
+        ]
     prompt = ChatPromptTemplate.from_messages([
         *system_message,
         MessagesPlaceholder(variable_name="chat_history"),
-        ("human", "{input}"),
+        ("human", "{input}\n\nAI:"),
     ])
     return prompt | llm | StrOutputParser()
 
 def initialize_chat_history():
-    st.session_state.chat_history = []
+    st.session_state.chat_history = [AIMessage(content="Hi There! How can I help?")]
 
 ############################################### APP ###############################################
 
@@ -75,16 +73,19 @@ if "chat_history" not in st.session_state:
 
 #sidebar
 with st.sidebar: # anything in here will appear in the side bar
-    framework = st.selectbox('Framework', ['vllm', 'openai_compatible', 'huggingface'])
+    framework = st.selectbox('Framework', ['vllm', 'openai_compatible', 'huggingface', 'ollama'])
     if framework in ['vllm', 'openai_compatible']:
         endpoint_url = st.text_input('Endpoint URL', value = ENDPOINT_URL)
         if endpoint_url:
             model_name = st.selectbox('Model Name', list_models(endpoint_url=endpoint_url))
     elif framework == 'huggingface':
-            endpoint_url=None
-            model_name = st.selectbox(
-                'Model', 
-                ["mistralai/Mistral-7B-Instruct-v0.2", "google/gemma-1.1-7b-it", "meta-llama/Meta-Llama-3-8B-Instruct"])
+        endpoint_url=None
+        model_name = st.selectbox(
+            'Model', 
+            ["mistralai/Mistral-7B-Instruct-v0.2", "google/gemma-1.1-7b-it", "meta-llama/Meta-Llama-3-8B-Instruct"])
+    elif framework == 'ollama':
+        endpoint_url=None
+        model_name = st.selectbox('Model', ["mistral", "llama3"])
         
     st.header("Settings")
     temperature = st.slider('Temperature', 0.0, 1.0, 0.7)
