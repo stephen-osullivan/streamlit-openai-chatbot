@@ -12,7 +12,7 @@ from utils import get_model
 
 import os
 
-ENDPOINT_URL = "https://api.openai.com/v1" # uses openai.com by default, use "http://0.0.0.0:8000/v1" for local
+ENDPOINT_URL = os.environ.get('DEFAULT_ENDPOINT_URL', "https://api.openai.com/v1") # uses openai.com by default
 API_KEY = os.environ.get('OPENAI_API_KEY', 'dummy_token') # only needed if using openai, not needed for local
 
 
